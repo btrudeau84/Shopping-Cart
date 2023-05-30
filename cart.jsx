@@ -1,10 +1,12 @@
-// simulate getting products from DataBase
+//simulate getting products from DataBase
 const products = [
-  { name: "Apples_:", country: "Italy", cost: 3, instock: 10 },
-  { name: "Oranges:", country: "Spain", cost: 4, instock: 3 },
-  { name: "Beans__:", country: "USA", cost: 2, instock: 5 },
-  { name: "Cabbage:", country: "USA", cost: 1, instock: 8 },
+  { name: "Apples", country: "Italy", cost: 3, instock: 10 },
+  { name: "Oranges", country: "Spain", cost: 4, instock: 3 },
+  { name: "Beans", country: "USA", cost: 2, instock: 5 },
+  { name: "Cabbage", country: "USA", cost: 1, instock: 8 },
 ];
+
+
 //=========Cart=============
 const Cart = (props) => {
   const { Card, Accordion, Button } = ReactBootstrap;
@@ -90,25 +92,38 @@ const Products = (props) => {
   } = ReactBootstrap;
   //  Fetch Data
   const { Fragment, useState, useEffect, useReducer } = React;
-  const [query, setQuery] = useState("http://localhost:1337/products");
+  const [query, setQuery] = useState("http://localhost:1337/api/products");
   const [{ data, isLoading, isError }, doFetch] = useDataApi(
-    "http://localhost:1337/products",
+    "http://localhost:1337/api/products",
     {
       data: [],
     }
   );
-  console.log(`Rendering Products ${JSON.stringify(data)}`);
+  //console.log(`Rendering Products ${JSON.stringify(data)}`);
   // Fetch Data
   const addToCart = (e) => {
     let name = e.target.name;
     let item = items.filter((item) => item.name == name);
+    if (item[0].instock == 0) return;
+    item[0].instock = item[0].instock -1;
+    console.log(items.instock)
+    //let newInstock = items.filter((item) => item.instock )
+    //setItems((item) => items.instock - 1);
     console.log(`add to Cart ${JSON.stringify(item)}`);
     setCart([...cart, ...item]);
     //doFetch(query);
   };
-  const deleteCartItem = (index) => {
-    let newCart = cart.filter((item, i) => index != i);
+  const deleteCartItem = (delIndex) => {
+    // this is the index in the cart not in the Product List
+
+    let newCart = cart.filter((item, i) => delIndex != i);
+    let target = cart.filter((item, index) => delIndex == index);
+    let newItems = items.map((item, index) => {
+      if (item.name == target[0].name) item.instock = item.instock + 1;
+      return item;
+    });
     setCart(newCart);
+    setItems(newItems);
   };
   const photos = ["apple.png", "orange.png", "beans.png", "cabbage.png"];
 
@@ -120,7 +135,7 @@ const Products = (props) => {
       <li key={index}>
         <Image src={photos[index % 4]} width={70} roundedCircle></Image>
         <Button variant="primary" size="large">
-          {item.name}:{item.cost}
+          {item.name} - cost:{item.cost}, In-stock:{item.instock}
         </Button>
         <input name={item.name} type="submit" onClick={addToCart}></input>
       </li>
@@ -128,12 +143,12 @@ const Products = (props) => {
   });
   let cartList = cart.map((item, index) => {
     return (
-      <Accordion.Item key={1+index} eventKey={1 + index}>
+      <Accordion.Item key={1+index} eventkey={1 + index}>
       <Accordion.Header>
         {item.name}
       </Accordion.Header>
       <Accordion.Body onClick={() => deleteCartItem(index)}
-        eventKey={1 + index}>
+        eventkey={1 + index}>
         $ {item.cost} from {item.country}
       </Accordion.Body>
     </Accordion.Item>
@@ -159,15 +174,18 @@ const Products = (props) => {
     console.log(`total updated to ${newTotal}`);
     return newTotal;
   };
-  // TODO: implement the restockProducts function
+
+
+  //TODO: implement the restockProducts function
   const restockProducts = (url) => {
     doFetch(url);
-    let newItems = data.map((item) => {
+    let newItems = data.data.map((item) => {
       let { name, country, cost, instock } = item;
       return { name, country, cost, instock };
     });
     setItems([...items, ...newItems]);
   };
+
 
   return (
     <Container>
@@ -189,9 +207,11 @@ const Products = (props) => {
       <Row>
         <form
           onSubmit={(event) => {
-            restockProducts(`http://localhost:1337/${query}`);
-            console.log(`Restock called on ${query}`);
             event.preventDefault();
+            console.log("I've been subbed. I tap")
+            restockProducts(query);
+            console.log(`Restock called on ${query}`);
+          
           }}
         >
           <input
